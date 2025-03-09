@@ -6,6 +6,8 @@ from rest_framework.permissions import AllowAny
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -30,6 +32,34 @@ class UserRegistrationView(generics.CreateAPIView):
            serializer: Validated UserSerializer instance
        """
        serializer.save()
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        
+        # Add custom claims
+        token['user_type'] = user.user_type  # Assuming user_type is a field in your User model
+        token['first_name'] = user.first_name
+        token['last_name'] = user.last_name
+        token['email'] = user.email
+        
+        return token
+    
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        
+        # Add user_type to response data
+        user = self.user
+        data['user_type'] = user.user_type
+        data['first_name'] = user.first_name
+        data['last_name'] = user.last_name
+        data['email'] = user.email
+        
+        return data
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
 
 class UserProfileView(APIView):
     authentication_classes = [JWTAuthentication]

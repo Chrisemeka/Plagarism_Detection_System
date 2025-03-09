@@ -2,13 +2,14 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from api.views import UserRegistrationView, CreateClassroomView, JoinClassroomView, ListClassroomsView, CreateAssignmentView, ListAssignmentsView, UserProfileView, SubmitAssignmentView, ListClassroomMembershipsView, PlagiarismReportView
+from api.views import UserRegistrationView, CreateClassroomView, JoinClassroomView, ListClassroomsView, CreateAssignmentView, ListAssignmentsView, UserProfileView, SubmitAssignmentView, ListClassroomMembershipsView, PlagiarismReportView, CustomTokenObtainPairView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/user/register/", UserRegistrationView.as_view(), name="register"), #the path to the view for creating a user
-    path("api/token/", TokenObtainPairView.as_view(), name="get_token"), #the path to the view for getting a token
+    path('api/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'), #the path to the view for getting a token
     path("api/token/refresh/", TokenRefreshView.as_view(), name="refresh_token"), #the path to the view for refreshing a token
     path("api/class/create/", CreateClassroomView.as_view(), name="create_classroom"), #the path to the view for creating a classroom
     path("api/profile/", UserProfileView.as_view(), name="profile"), #the path to the view for creating a classroom

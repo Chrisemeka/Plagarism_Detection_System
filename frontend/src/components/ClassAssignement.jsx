@@ -1,7 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import api from '../api';
-import Toast from './Toast';
+import Toast from './common/Toast';
 
 export default function ClassAssignments() {
   const { classCode } = useParams();
@@ -139,14 +139,8 @@ export default function ClassAssignments() {
                     <div>
                       <span className="text-gray-500">Deadline</span>
                       <p className="font-medium">
-                        {new Date(assignment.deadline).toLocaleDateString('en-US', {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
+                        {new Date(assignment.deadline).toLocaleString('en-US', { timeZone: 'UTC' })
+                      }
                       </p>
                     </div>
                     <div>

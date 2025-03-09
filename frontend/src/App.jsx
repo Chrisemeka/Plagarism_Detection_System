@@ -1,23 +1,24 @@
 // Import necessary modules from React and React Router
-import react from "react";
+import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 // Import page components for different routes
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Home from "./pages/Home";
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
 import NotFound from "./pages/NotFound";
-import CreateClassForm from "./pages/CreateClassForm";
-
-// Import the ProtectedRoute component to guard specific routes
-import ProtectedRoutes from "./components/ProtectedRoutes";
-import JoinClassForm from "./pages/JoinClassForm";
-import CreateAssignment from "./pages/CreateAssignment";
-import StudentDashboard from "./pages/StudentDashboard";
-import StudentClass from "./pages/StudentClass";
+import ProtectedRoutes from "./pages/auth/ProtectedRoutes";
+import LecturerLayout from "./pages/Layout/LecturerLayout";
+import StudentLayout from "./pages/Layout/StudentLayout";
+import StudentDashboard from "./pages/Student/StudentDashboard";
+import StudentClass from "./pages/Student/StudentClass";
+// import JoinClassForm from "./components/common/JoinClassForm";
 import ClassAssignments from "./components/ClassAssignement";
-import LecturerDashboard from "./pages/LecturerDashboard";
+import LecturerDashboard from "./pages/Lecturer/LecturerDashboard";
+import CreateClassForm from "./pages/Lecturer/CreateClassForm";
+import CreateAssignment from "./pages/Lecturer/CreateAssignment";
 import LecturerClassroomAssignment from "./components/LecturerClassroomAssignment";
+import JoinClass from "./pages/Student/JoinClass";
+import PlagiarismAnalytics from "./components/Analytics/PlagiarismAnalysis";
 
 // Function to handle user logout and clear localStorage
 function Logout() {
@@ -38,82 +39,46 @@ function App() {
     <BrowserRouter>
       {/* Define all application routes */}
       <Routes>
-        {/* Route for the home page ("/"), protected by ProtectedRoute */}
-        <Route
-          path="/"
-          element={
-            <ProtectedRoutes>
-              <Home /> {/* Only accessible to authorized users */}
-            </ProtectedRoutes>
-          }
-        />
-
-        {/* Route for the login page */}
-        <Route path="/login" element={<Login key="login"/>} />
-
-        {/* Route for the logout functionality */}
+        {/* Public Routes */}
+        <Route path="/login" element={<Login key="login" />} />
         <Route path="/logout" element={<Logout />} />
-
-        {/* Route for the registration page with automatic logout */}
         <Route path="/register" element={<RegisterAndLogout />} />
 
-        {/* Route for the class creation page */}
-        <Route path="/create/class" element={
-          <ProtectedRoutes>
-            <CreateClassForm />
-          </ProtectedRoutes>
-          
-          } />
+        {/* Redirect root to appropriate dashboard */}
+        <Route path="/" element={<Navigate to="/login" />} />
 
-          {/* Route for the class joining page */}
-        <Route path="/join/class" element={
-          <ProtectedRoutes>
-            <JoinClassForm />
-          </ProtectedRoutes>
-          
-          } />
+        {/* Student Routes - Grouped under StudentLayout */}
+        <Route 
+          path="/student" 
+          element={
+            <ProtectedRoutes>
+              <StudentLayout />
+            </ProtectedRoutes>
+          }
+        >
+          <Route index element={<StudentDashboard />} />
+          <Route path="dashboard" element={<StudentDashboard />} />
+          <Route path="join-class" element={<JoinClass />} />
+          <Route path="classes" element={<StudentClass />} />
+          <Route path="classes/:classCode/assignments" element={<ClassAssignments />} />
+        </Route>
 
-            {/* Route for the creating assignment page */}
-        <Route path="/create/assignment" element={
-          <ProtectedRoutes>
-            <CreateAssignment />
-          </ProtectedRoutes>
-          
-          } />
-
-        <Route path="/student" element={
-          <ProtectedRoutes>
-            <StudentDashboard />
-          </ProtectedRoutes>
-          } />
-
-          <Route path="/lecturer" element={
-          <ProtectedRoutes>
-            <LecturerDashboard />
-          </ProtectedRoutes>
-          } />
-
-        <Route path="/student/classes" element={
-          <ProtectedRoutes>
-            <StudentClass />
-          </ProtectedRoutes>
-          } />
-
-
-        <Route path="/student/classes/:classCode/assignments" element=
-        {
-          <ProtectedRoutes>
-            <ClassAssignments />
-          </ProtectedRoutes>
-        } />
-
-        <Route path="/lecturer/classes/:classCode/assignments" element=
-        {
-          <ProtectedRoutes>
-            <LecturerClassroomAssignment />
-          </ProtectedRoutes>
-        } />
-
+        {/* Lecturer Routes - Grouped under LecturerLayout */}
+        <Route 
+          path="/lecturer" 
+          element={
+            <ProtectedRoutes>
+              <LecturerLayout />
+            </ProtectedRoutes>
+          }
+        >
+          <Route index element={<LecturerDashboard />} />
+          <Route path="dashboard" element={<LecturerDashboard />} />
+          <Route path="create-class" element={<CreateClassForm />} />
+          <Route path="create-assignment" element={<CreateAssignment />} />
+          <Route path="classes/:classCode/assignments" element={<LecturerClassroomAssignment />} />
+          <Route path="classes/:classCode/assignments/:id/analysis" element={<PlagiarismAnalytics />} />
+        </Route>
 
         {/* Catch-all route for undefined paths, showing a 404 page */}
         <Route path="*" element={<NotFound />} />

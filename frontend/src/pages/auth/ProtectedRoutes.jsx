@@ -3,10 +3,10 @@ import { Navigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 
 // Import the custom Axios instance for making API requests
-import api from "../api";
+import api from "../../api";
 
 // Import constants for token keys used in localStorage
-import { REFRESH_TOKEN, ACCESS_TOKEN } from "../constants";
+import { REFRESH_TOKEN, ACCESS_TOKEN } from "../../constants";
 
 // Import React hooks for managing state and side effects
 import { useState, useEffect } from "react";

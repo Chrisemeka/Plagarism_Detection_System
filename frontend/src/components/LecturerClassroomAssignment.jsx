@@ -1,15 +1,18 @@
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useCallback } from 'react';
 import { FileText, AlertTriangle } from 'lucide-react';
 import api from '../api';
-import Toast from './Toast';
+import Toast from './common/Toast';
+import PlagiarismAnalysis from '../components/Analytics/PlagiarismAnalysis'
 
 export default function LecturerClassroomAssignment() {
+  const navigate = useNavigate();
   const { classCode } = useParams();
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState(null);
   const [currentCheckingId, setCurrentCheckingId] = useState(null);
+  // const [showPlagiarismAnalysis, setShowPlagiarismAnalysis] = useState(false);
 
   const fetchSubmissionCount = useCallback(async (assignmentId, access) => {
     try {
@@ -39,6 +42,7 @@ export default function LecturerClassroomAssignment() {
     try {
       const response = await api.get(`/api/class/${classCode}/assignments/`);
       const assignmentData = response.data;
+      // console.log('Assignment Data:', assignmentData);
 
       // Fetch submission counts for each assignment
       const assignmentsWithCounts = await Promise.all(
@@ -68,25 +72,37 @@ export default function LecturerClassroomAssignment() {
   }, [fetchData]);
 
   const handlePlagiarismCheck = async (assignmentId) => {
-    setCurrentCheckingId(assignmentId);
-    try {
-      const response = await api.get(`/api/assignments/${assignmentId}/plagiarism-report/`);
-      console.log('Plagiarism Report:', response.data);
-      
-      setNotification({
-        type: 'success',
-        message: 'Plagiarism report retrieved successfully'
-      });
-    } catch (error) {
-      console.error('Error fetching plagiarism report:', error);
-      const errorMessage = error.response?.data?.error || 'Failed to retrieve plagiarism report';
-      setNotification({
-        type: 'error',
-        message: errorMessage
-      });
-    } finally {
-      setCurrentCheckingId(null);
-    }
+    // console.log('Assignment ID:', assignmentId); // Log the assignmentId
+    // if (!assignmentId) {
+    //   console.error('Assignment ID is null or undefined');
+    //   setNotification({
+    //     type: 'error',
+    //     message: 'Invalid assignment ID'
+    //   });
+    //   return;
+    // }
+
+    navigate(`/lecturer/classes/${classCode}/assignments/${assignmentId}/analysis`);
+  
+    // setCurrentCheckingId(assignmentId);
+    // try {
+    //   const response = await api.get(`/api/assignments/${assignmentId}/plagiarism-report/`);
+    //   console.log('Plagiarism Report:', response.data);
+    //   setShowPlagiarismAnalysis(true);
+    //   setNotification({
+    //     type: 'success',
+    //     message: 'Plagiarism report retrieved successfully'
+    //   });
+    // } catch (error) {
+    //   console.error('Error fetching plagiarism report:', error);
+    //   const errorMessage = error.response?.data?.error || 'Failed to retrieve plagiarism report';
+    //   setNotification({
+    //     type: 'error',
+    //     message: errorMessage
+    //   });
+    // } finally {
+    //   setCurrentCheckingId(null);
+    // }
   };
 
   if (loading) {
@@ -110,6 +126,7 @@ export default function LecturerClassroomAssignment() {
         <div className="space-y-6">
           {assignments.map((assignment) => {
             const isDeadlinePassed = new Date(assignment.deadline) < new Date();
+            // console.log(assignment.deadline)
             const submissionCount = assignment.submission_count || 0;
             
             return (
@@ -132,13 +149,8 @@ export default function LecturerClassroomAssignment() {
                   <div>
                     <span className="text-gray-500 text-sm">Deadline</span>
                     <p className="font-medium">
-                      {new Date(assignment.deadline).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
+                      {new Date(assignment.deadline).toLocaleString('en-US', { timeZone: 'UTC' })
+                    }
                     </p>
                   </div>
                   <div>
@@ -197,6 +209,15 @@ export default function LecturerClassroomAssignment() {
           onClose={() => setNotification(null)}
         />
       )}
+
+    {/* {showPlagiarismAnalysis && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl p-6">
+          {console.log(currentCheckingId)}
+          <PlagiarismAnalysis assignmentId={currentCheckingId} onClose={() => setShowPlagiarismAnalysis(false)} />
+        </div>
+      </div>
+    )} */}
     </div>
   );
 }

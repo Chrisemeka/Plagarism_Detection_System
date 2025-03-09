@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, FileText, Book } from 'lucide-react';
+import { Users, FileText, Book, Copy, Check } from 'lucide-react';
 
 export default function LecturerClass({ refreshTrigger }) {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [copiedCode, setCopiedCode] = useState(null);
   const navigate = useNavigate();
 
   const fetchAssignmentCount = async (classCode, access) => {
@@ -93,6 +94,20 @@ export default function LecturerClass({ refreshTrigger }) {
     fetchClasses();
   }, [refreshTrigger, navigate]);
 
+  const copyToClipboard = (code) => {
+    navigator.clipboard.writeText(code)
+      .then(() => {
+        setCopiedCode(code);
+        // Reset the copied state after 2 seconds
+        setTimeout(() => {
+          setCopiedCode(null);
+        }, 2000);
+      })
+      .catch(err => {
+        console.error('Failed to copy text: ', err);
+      });
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -123,7 +138,20 @@ export default function LecturerClass({ refreshTrigger }) {
           {/* Class Header */}
           <div className="p-6 border-b">
             <h4 className="text-lg font-semibold mb-2">{classItem.title}</h4>
-            <p className="text-gray-600">Code: {classItem.code}</p>
+            <div className="flex items-center">
+              <p className="text-gray-600 mr-2">Code: {classItem.code}</p>
+              <button 
+                onClick={() => copyToClipboard(classItem.code)}
+                className="p-1 rounded-md hover:bg-gray-100 transition-colors"
+                title="Copy code to clipboard"
+              >
+                {copiedCode === classItem.code ? (
+                  <Check size={16} className="text-green-500" />
+                ) : (
+                  <Copy size={16} className="text-gray-500" />
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Quick Stats */}
@@ -146,12 +174,6 @@ export default function LecturerClass({ refreshTrigger }) {
 
           {/* Action Buttons */}
           <div className="grid grid-cols-2 gap-4 p-4">
-            <button 
-              onClick={() => navigate(`/lecturer/classes/${classItem.code}/manage`)}
-              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-            >
-              Manage Class
-            </button>
             <button 
               onClick={() => navigate(`/lecturer/classes/${classItem.code}/assignments`)}
               className="text-blue-600 hover:text-blue-800 text-sm font-medium"
