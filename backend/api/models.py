@@ -144,6 +144,8 @@ class ProcessedDocument(models.Model):
         return f"Processed document for {self.submission}"
     
 
+from django.db import models
+
 class PlagiarismResult(models.Model):
     submission1 = models.ForeignKey(AssignmentSubmission, on_delete=models.CASCADE, related_name='source_results')
     submission2 = models.ForeignKey(AssignmentSubmission, on_delete=models.CASCADE, related_name='compared_results')

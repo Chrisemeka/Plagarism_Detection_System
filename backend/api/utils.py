@@ -64,13 +64,13 @@ class DocumentProcessor:
         return text
     
     def generate_kgrams(self, text, k):
-        """Generate k-grams with overlapping positions"""
         words = text.split()
+        if len(words) < k:
+            return []  # Not enough words to generate k-grams
         kgrams = []
         for i in range(len(words) - k + 1):
             kgram = ' '.join(words[i:i+k])
-            position = [i, i+k]
-            # Instead of trying to append two items, create a tuple or dictionary
+            position = [i, i+k]  # Ensure start < end
             kgrams.append({
                 'kgram': kgram,
                 'position': position
@@ -134,57 +134,19 @@ class DocumentProcessor:
             submission.status = 'processing_failed'
             submission.save()
             raise ProcessingError(f"Failed to process document: {str(e)}")
-        """Main processing function"""
-        try:
-            # Extract text
-            text = self.extract_text(submission.file.path)
-            print("Extracted text:", text)  # Debug print
-            
-            # Preprocess
-            processed_text = self.preprocess_text(text)
-            print("Processed text:", processed_text)  # Debug print
-            
-            # Generate k-grams with positions
-            kgrams = self.generate_kgrams(processed_text, self.k)
-            print("Generated k-grams:", kgrams)  # Debug print
-            
-            # Generate fingerprints
-            fingerprints = [
-                {
-                    'hash': self.hash_kgram(kgram_data['kgram']),
-                    'position': kgram_data['position'],
-                    'text': kgram_data['kgram']
-                }
-                for kgram_data in kgrams
-            ]
-            print("Generated fingerprints:", fingerprints)  # Debug print
-            
-            # Store processed document
-            processed_doc = ProcessedDocument.objects.create(
-                submission=submission,
-                processed_text=processed_text,
-                fingerprints=fingerprints,
-                status='completed'
-            )
-            print("Stored document:", processed_doc.fingerprints)  # Debug print
-            
-            # Update submission status
-            submission.status = 'processed'
-            submission.save()
-            
-            return True
-        except Exception as e:
-            print(f"Error: {str(e)}")  # Debug print
-            submission.status = 'processing_failed'
-            submission.save()
-            raise ProcessingError(f"Failed to process document: {str(e)}")
         
+
+# 
+
 
 class PlagiarismChecker:
     def __init__(self, similarity_threshold=0.3):
         self.similarity_threshold = similarity_threshold
 
     def compare_submissions(self, source_submission, target_submission):
+        """
+        Compare two submissions and calculate their similarity score and matching segments.
+        """
         try:
             source_doc = ProcessedDocument.objects.get(submission=source_submission)
             target_doc = ProcessedDocument.objects.get(submission=target_submission)
@@ -194,9 +156,10 @@ class PlagiarismChecker:
                 target_doc.fingerprints
             )
 
-            similarity_score = self.calculate_jaccard_similarity(
+            similarity_score = self.calculate_similarity(
                 source_doc.fingerprints,
-                target_doc.fingerprints
+                target_doc.fingerprints,
+                matching_segments
             )
 
             return {
@@ -206,14 +169,18 @@ class PlagiarismChecker:
 
         except ProcessedDocument.DoesNotExist:
             raise ValueError("One or both documents haven't been processed")
-    
+
     def are_matches_adjacent(self, match1, match2, max_gap=2):
-        """Check if two matches are adjacent or close enough to combine"""
+        """
+        Check if two matches are adjacent or close enough to combine.
+        """
         return (match2['source_position'][0] - match1['source_position'][1] <= max_gap and
                 match2['target_position'][0] - match1['target_position'][1] <= max_gap)
-    
+
     def consolidate_matches(self, matches):
-        """Combine adjacent or overlapping matches"""
+        """
+        Combine adjacent or overlapping matches into larger segments.
+        """
         if not matches:
             return []
 
@@ -233,25 +200,39 @@ class PlagiarismChecker:
         return consolidated
 
     def find_matching_segments(self, source_fingerprints, target_fingerprints):
+        """
+        Find matching segments between two sets of fingerprints.
+        """
         matches = []
         source_hash_map = {fp['hash']: fp for fp in source_fingerprints}
-        
+
         for target_fp in target_fingerprints:
             if target_fp['hash'] in source_hash_map:
                 source_fp = source_hash_map[target_fp['hash']]
-                matches.append({
-                    'source_position': source_fp['position'],
-                    'target_position': target_fp['position'],
-                    'text': source_fp['text']
-                })
+                # Ensure positions are valid (start < end)
+                if (source_fp['position'][0] < source_fp['position'][1] and
+                    target_fp['position'][0] < target_fp['position'][1]):
+                    matches.append({
+                        'source_position': source_fp['position'],
+                        'target_position': target_fp['position'],
+                        'text': source_fp['text']
+                    })
 
         return self.consolidate_matches(matches)
 
-    def calculate_jaccard_similarity(self, source_fingerprints, target_fingerprints):
+    def calculate_similarity(self, source_fingerprints, target_fingerprints, matching_segments):
+        """
+        Calculate similarity score as percentage between 0 and 100.
+        """
+        if not source_fingerprints or not target_fingerprints:
+            return 0.0
+
+        # Calculate Jaccard similarity
         source_hashes = {fp['hash'] for fp in source_fingerprints}
         target_hashes = {fp['hash'] for fp in target_fingerprints}
 
         intersection = source_hashes.intersection(target_hashes)
         union = source_hashes.union(target_hashes)
 
-        return (len(intersection) / len(union)) * 100 if union else 0
+        similarity = (len(intersection) / len(union)) * 100 if union else 0
+        return min(max(similarity, 0), 100)  # Clamp between 0 and 100

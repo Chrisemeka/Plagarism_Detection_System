@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from api.views import UserRegistrationView, CreateClassroomView, JoinClassroomView, ListClassroomsView, CreateAssignmentView, ListAssignmentsView, UserProfileView, SubmitAssignmentView, ListClassroomMembershipsView, PlagiarismReportView, CustomTokenObtainPairView
+from api.views import UserRegistrationView, CreateClassroomView, JoinClassroomView, ListClassroomsView, CreateAssignmentView, ListAssignmentsView, UserProfileView, SubmitAssignmentView, ListClassroomMembershipsView, PlagiarismReportView, CustomTokenObtainPairView, DocumentComparisonView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 
@@ -20,5 +20,6 @@ urlpatterns = [
     path("api/class/<str:class_code>/assignments/", ListAssignmentsView.as_view(), name="list_of_assignment"), #the path to the view for listing the classrooms
     path('api/assignments/<int:assignment_id>/submit/', SubmitAssignmentView.as_view(), name='submit_assignment'),
     path('api/assignments/<int:assignment_id>/plagiarism-report/', PlagiarismReportView.as_view(), name='plagiarism_report'),
+    path('api/assignments/<int:assignment_id>/document-comparison/', DocumentComparisonView.as_view(), name='document_comparison'),
     path("api-auth/", include("rest_framework.urls")), #the path to the rest framework urls
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

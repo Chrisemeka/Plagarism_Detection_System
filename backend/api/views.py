@@ -1,4 +1,5 @@
 from django.shortcuts import render
+import datetime
 from django.utils import timezone
 from rest_framework import generics, permissions
 from.serializers import UserSerializer
@@ -12,10 +13,14 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.core.exceptions import PermissionDenied
+import os
+import mimetypes
+import docx  # python-docx
+import PyPDF2
 from .models import Classroom, ClassroomMembership, Assignment, AssignmentSubmission, ProcessedDocument
 from .utils import DocumentProcessor, ProcessingError, PlagiarismChecker
 from .permission import IsLecturerPermission
-from .serializers import UserSerializer, ClassroomSerializer, ClassroomMembershipSerializer, JoinClassSerializer, AssignmentSerializer, AssignmentSubmissionSerializer, ClassroomMembershipSerializer
+from .serializers import UserSerializer, ClassroomSerializer, ClassroomMembershipSerializer, JoinClassSerializer, AssignmentSerializer, AssignmentSubmissionSerializer, ClassroomMembershipSerializer, PlagiarismReportSerializer
 
 class UserRegistrationView(generics.CreateAPIView):
    """
@@ -266,54 +271,343 @@ class PlagiarismReportView(APIView):
 
     def get(self, request, assignment_id):
         try:
+            # Fetch the assignment
             assignment = Assignment.objects.get(id=assignment_id)
 
-            # Check if user is lecturer of this class
+            # Check if the user is the lecturer of this class
             if not assignment.classroom.lecturer == request.user:
                 return Response(
                     {"error": "Unauthorized access"}, 
                     status=status.HTTP_403_FORBIDDEN
                 )
 
-            # Check if deadline has passed
+            # Check if the deadline has passed
             if timezone.now() < assignment.deadline:
                 return Response(
                     {"error": "Cannot check plagiarism before deadline"}, 
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # Get all submissions
+            # Fetch all submissions for the assignment
             submissions = AssignmentSubmission.objects.filter(
                 assignment=assignment
             )
 
+            # Initialize the PlagiarismChecker
             checker = PlagiarismChecker()
             comparison_results = []
 
-            # Compare submissions without threshold filter
+            # Compare all pairs of submissions
             for idx, submission1 in enumerate(submissions):
-                for submission2 in submissions[idx + 1:]:
+                for submission2 in submissions[idx + 1:]:  # Compare each pair only once
                     result = checker.compare_submissions(submission1, submission2)
-                    # Remove threshold check, append all results
                     comparison_results.append({
                         'student1': f"{submission1.student.first_name} {submission1.student.last_name}",
                         'student2': f"{submission2.student.first_name} {submission2.student.last_name}",
-                        'similarity_score': round(result['similarity_score'], 2),  # Round to 2 decimal places
+                        'similarity_score': round(result['similarity_score'], 2),
                         'matching_segments': result['matching_segments']
                     })
 
+            # Calculate additional metrics
+            average_similarity = sum(
+                comp['similarity_score'] for comp in comparison_results
+            ) / len(comparison_results) if comparison_results else 0
+
+            above_threshold_count = sum(
+                1 for comp in comparison_results if comp['similarity_score'] > assignment.plagiarism_threshold
+            )
+
+            # Build the report
             report = {
                 'assignment_title': assignment.title,
                 'total_submissions': submissions.count(),
                 'deadline': assignment.deadline,
+                'average_similarity': round(average_similarity, 2),
+                'above_threshold_count': above_threshold_count,
                 'comparisons': comparison_results,
                 'check_date': timezone.now()
             }
 
-            return Response(report)
+            # Serialize and return the report
+            serializer = PlagiarismReportSerializer(report)
+            return Response(serializer.data)
 
         except Assignment.DoesNotExist:
             return Response(
                 {"error": "Assignment not found"}, 
                 status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class DocumentComparisonView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get_plagiarism_report(self, request, assignment_id):
+        """Get the plagiarism report using the same logic as PlagiarismReportView"""
+        try:
+            # Reuse the code from PlagiarismReportView
+            assignment = Assignment.objects.get(id=assignment_id)
+            
+            # Check if the user is the lecturer of this class
+            if not assignment.classroom.lecturer == request.user:
+                return Response(
+                    {"error": "Unauthorized access"}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Check if the deadline has passed
+            if timezone.now() < assignment.deadline:
+                return Response(
+                    {"error": "Cannot check plagiarism before deadline"}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Fetch all submissions for the assignment
+            submissions = AssignmentSubmission.objects.filter(
+                assignment=assignment
+            )
+            
+            # Initialize the PlagiarismChecker
+            checker = PlagiarismChecker()
+            comparison_results = []
+            
+            # Compare all pairs of submissions
+            for idx, submission1 in enumerate(submissions):
+                for submission2 in submissions[idx + 1:]:  # Compare each pair only once
+                    result = checker.compare_submissions(submission1, submission2)
+                    comparison_results.append({
+                        'student1': f"{submission1.student.first_name} {submission1.student.last_name}",
+                        'student2': f"{submission2.student.first_name} {submission2.student.last_name}",
+                        'similarity_score': round(result['similarity_score'], 2),
+                        'matching_segments': result['matching_segments']
+                    })
+            
+            # Calculate additional metrics
+            average_similarity = sum(
+                comp['similarity_score'] for comp in comparison_results
+            ) / len(comparison_results) if comparison_results else 0
+            
+            above_threshold_count = sum(
+                1 for comp in comparison_results if comp['similarity_score'] > assignment.plagiarism_threshold
+            )
+            
+            # Build the report
+            report = {
+                'assignment_title': assignment.title,
+                'total_submissions': submissions.count(),
+                'deadline': assignment.deadline,
+                'average_similarity': round(average_similarity, 2),
+                'above_threshold_count': above_threshold_count,
+                'comparisons': comparison_results,
+                'check_date': timezone.now()
+            }
+            
+            return report
+            
+        except Assignment.DoesNotExist:
+            return Response(
+                {"error": "Assignment not found"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def extract_text_from_file(self, file_path):
+        """Extract text from Word or PDF files"""
+        # Determine file type by extension
+        mime_type, _ = mimetypes.guess_type(file_path)
+        
+        # Handle different file types
+        if mime_type == 'application/pdf':
+            # Extract text from PDF using PyPDF2
+            text = ""
+            with open(file_path, 'rb') as file:
+                reader = PyPDF2.PdfReader(file)
+                for page_num in range(len(reader.pages)):
+                    text += reader.pages[page_num].extract_text() + "\n"
+            return text
+            
+        elif mime_type == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+            # Extract text from DOCX using python-docx
+            doc = docx.Document(file_path)
+            full_text = []
+            for para in doc.paragraphs:
+                full_text.append(para.text)
+            return '\n'.join(full_text)
+            
+        else:
+            # For unsupported file types
+            return f"Unsupported file type: {mime_type}. Only Word and PDF files are supported."
+    
+    def get(self, request, assignment_id):
+        # Get student names from query parameters
+        student1_name = request.query_params.get('student1')
+        student2_name = request.query_params.get('student2')
+        
+        print(f"API request for comparison between: {student1_name} and {student2_name}")
+        
+        if not student1_name or not student2_name:
+            return Response(
+                {"error": "Both student1 and student2 parameters are required"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Get the assignment
+            assignment = Assignment.objects.get(id=assignment_id)
+            
+            # Check if user is authorized (is the lecturer of this classroom)
+            if request.user != assignment.classroom.lecturer:
+                return Response(
+                    {"error": "You are not authorized to view these submissions"}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Get all submissions for this assignment
+            all_submissions = AssignmentSubmission.objects.filter(assignment=assignment)
+            
+            # Find exact matches for the student names first
+            submission1 = None
+            submission2 = None
+            
+            for sub in all_submissions:
+                full_name = f"{sub.student.first_name} {sub.student.last_name}".lower()
+                if full_name == student1_name.lower():
+                    submission1 = sub
+                elif full_name == student2_name.lower():
+                    submission2 = sub
+            
+            # If exact matches weren't found, try partial matching
+            if submission1 is None or submission2 is None:
+                # Split the name into parts for more flexible matching
+                student1_parts = student1_name.lower().split()
+                student2_parts = student2_name.lower().split()
+                
+                # Find the first student's submission
+                if submission1 is None:
+                    for sub in all_submissions:
+                        student_first = sub.student.first_name.lower()
+                        student_last = sub.student.last_name.lower()
+                        
+                        # Check if any part of the provided name matches this student
+                        if any(part in student_first or part in student_last for part in student1_parts):
+                            submission1 = sub
+                            break
+                
+                # Find the second student's submission
+                if submission2 is None:
+                    for sub in all_submissions:
+                        student_first = sub.student.first_name.lower()
+                        student_last = sub.student.last_name.lower()
+                        
+                        # Check if any part of the provided name matches this student
+                        if any(part in student_first or part in student_last for part in student2_parts):
+                            # Don't select the same submission twice
+                            if not submission1 or sub.id != submission1.id:
+                                submission2 = sub
+                                break
+            
+            if not submission1 or not submission2:
+                return Response(
+                    {"error": f"Could not find submissions for {student1_name} or {student2_name}"}, 
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Get the full names of both students
+            student1_full_name = f"{submission1.student.first_name} {submission1.student.last_name}"
+            student2_full_name = f"{submission2.student.first_name} {submission2.student.last_name}"
+            
+            print(f"Found submissions for {student1_full_name} and {student2_full_name}")
+            
+            # Extract text from files
+            try:
+                document1_content = self.extract_text_from_file(submission1.file.path)
+            except Exception as e:
+                return Response(
+                    {"error": f"Error reading file for {student1_full_name}: {str(e)}"}, 
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+                
+            try:
+                document2_content = self.extract_text_from_file(submission2.file.path)
+            except Exception as e:
+                return Response(
+                    {"error": f"Error reading file for {student2_full_name}: {str(e)}"}, 
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+            
+            # Get the plagiarism report directly from the API endpoint
+            try:
+                # Get the plagiarism report
+                report_data = self.get_plagiarism_report(request, assignment_id)
+                if isinstance(report_data, Response):
+                    # If we got a Response object, extract the data or return the error
+                    if report_data.status_code != 200:
+                        return Response(
+                            {"error": "Failed to fetch plagiarism report"}, 
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                        )
+                    report_data = report_data.data
+                
+                # Get the comparisons from the report
+                comparisons = report_data.get('comparisons', [])
+                
+                print(f"Searching for comparison between {student1_full_name} and {student2_full_name}")
+                print(f"Total comparisons found: {len(comparisons)}")
+                
+                # Find the comparison for these two students - look for an EXACT match
+                comparison = None
+                for comp in comparisons:
+                    # Print each comparison for debugging
+                    print(f"Checking comparison: {comp.get('student1')} vs {comp.get('student2')}")
+                    
+                    # Check for exact match (either order)
+                    if ((comp.get('student1') == student1_full_name and comp.get('student2') == student2_full_name) or
+                        (comp.get('student1') == student2_full_name and comp.get('student2') == student1_full_name)):
+                        comparison = comp
+                        print(f"Found exact match with similarity: {comp.get('similarity_score')}%")
+                        break
+                
+                # If no exact match was found, create a default comparison
+                if not comparison:
+                    print(f"No comparison found for {student1_full_name} and {student2_full_name}, creating default")
+                    comparison = {
+                        'student1': student1_full_name,
+                        'student2': student2_full_name,
+                        'similarity_score': 0.0,
+                        'matching_segments': []
+                    }
+                
+                # Return the document contents and matching segments in the expected format
+                return Response({
+                    "document1": document1_content,
+                    "document2": document2_content,
+                    "comparison": comparison
+                })
+                
+            except Exception as e:
+                import traceback
+                print(f"Error retrieving comparison data: {str(e)}")
+                print(traceback.format_exc())
+                return Response(
+                    {"error": f"Error retrieving comparison data: {str(e)}"}, 
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+            
+        except Assignment.DoesNotExist:
+            return Response(
+                {"error": "Assignment not found"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

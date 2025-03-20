@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom'; // Add useNavigate for navigation
-import { HistogramChart } from './HistogramChart';
-import { SimilarityHeatMap } from './SimilarityHeatMap';
+import  HistogramChart  from './HistogramChart';
+import  SimilarityHeatMap  from './SimilarityHeatMap';
 // import { SimilarityBoxPlot } from './SimilarityBoxPlot';
-import { ComparisonView } from './ComparisonView';
+import  ComparisonView  from './ComparisonView';
 import api from '../../api';
 
 export default function PlagiarismAnalytics() {
@@ -98,6 +98,7 @@ export default function PlagiarismAnalytics() {
       try {
         // Fetch the plagiarism report for this assignment
         const response = await api.get(`/api/assignments/${assignmentId}/plagiarism-report/`);
+        console.log('data received correctly');
         setReportData(response.data);
       } catch (err) {
         console.error('Error fetching plagiarism report:', err);
@@ -163,48 +164,86 @@ export default function PlagiarismAnalytics() {
 
   // In PlagiarismAnalytics.jsx - we need to modify the handlePairSelect function:
 
-const handlePairSelect = async (submissionIndex1, submissionIndex2) => {
-  if (submissionIndex1 === submissionIndex2) return; // Ignore self-comparisons
-  
-  // Find the comparison data for these two submissions
-  const student1 = submissions[submissionIndex1].student_name;
-  const student2 = submissions[submissionIndex2].student_name;
-  
-  // Look for this pair in the comparisons array
-  const comparison = reportData.comparisons.find(comp => 
-    (comp.student1 === student1 && comp.student2 === student2) ||
-    (comp.student1 === student2 && comp.student2 === student1)
-  );
-  
-  if (comparison) {
-    try {
-      // Fetch the full document texts
-      const response = await api.get(`/api/assignments/${assignmentId}/document-comparison/`, {
-        params: { student1, student2 }
-      });
-      
-      setSelectedPair({
-        comparison,
-        submission1: {
-          ...submissions[submissionIndex1],
-          fullText: response.data.document1
-        },
-        submission2: {
-          ...submissions[submissionIndex2],
-          fullText: response.data.document2
+  const handlePairSelect = async (submissionIndex1, submissionIndex2) => {
+    if (submissionIndex1 === submissionIndex2) return; // Ignore self-comparisons
+    
+    // Set loading state
+    setIsLoading(true);
+    
+    // Find the comparison data for these two submissions
+    const student1 = submissions[submissionIndex1].student_name;
+    const student2 = submissions[submissionIndex2].student_name;
+    
+    console.log(`Attempting to view comparison between: ${student1} and ${student2}`);
+    
+    // Look for this pair in the comparisons array (check both orderings)
+    const comparison = reportData.comparisons.find(comp => 
+      (comp.student1 === student1 && comp.student2 === student2) ||
+      (comp.student1 === student2 && comp.student2 === student1)
+    );
+    
+    if (comparison) {
+      try {
+        console.log(`Found comparison with similarity score: ${comparison.similarity_score}%`);
+        
+        // Fetch the full document texts
+        const response = await api.get(`/api/assignments/${assignmentId}/document-comparison/`, {
+          params: { 
+            student1: student1,
+            student2: student2
+          }
+        });
+        
+        console.log("API response received:", response.data);
+        
+        // Check if the received comparison matches what we requested
+        if (response.data.comparison) {
+          const receivedStudent1 = response.data.comparison.student1;
+          const receivedStudent2 = response.data.comparison.student2;
+          
+          if ((receivedStudent1 !== student1 || receivedStudent2 !== student2) &&
+              (receivedStudent1 !== student2 || receivedStudent2 !== student1)) {
+            console.error(`ERROR: Requested ${student1} vs ${student2} but received ${receivedStudent1} vs ${receivedStudent2}`);
+          }
         }
-      });
-    } catch (error) {
-      console.error("Error fetching full documents:", error);
-      // Fall back to just showing the comparison
-      setSelectedPair({
-        comparison,
-        submission1: submissions[submissionIndex1],
-        submission2: submissions[submissionIndex2]
-      });
+        
+        // Format the selected pair data to match what ComparisonView.jsx expects
+        setSelectedPair({
+          comparison: response.data.comparison,
+          submission1: {
+            ...submissions[submissionIndex1],
+            fullText: response.data.document1,
+            student_name: student1
+          },
+          submission2: {
+            ...submissions[submissionIndex2],
+            fullText: response.data.document2,
+            student_name: student2
+          }
+        });
+      } catch (error) {
+        console.error("Error fetching full documents:", error);
+        
+        // Fall back to just showing the comparison without full texts
+        setSelectedPair({
+          comparison,
+          submission1: {
+            ...submissions[submissionIndex1],
+            student_name: student1
+          },
+          submission2: {
+            ...submissions[submissionIndex2],
+            student_name: student2
+          }
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      console.error(`No comparison found between ${student1} and ${student2}`);
+      setIsLoading(false);
     }
-  }
-};
+  };
 
   if (isLoading) {
     return (

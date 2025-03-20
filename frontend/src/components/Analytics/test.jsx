@@ -2,29 +2,18 @@ import React from 'react';
 import ReactDiffViewer from 'react-diff-viewer';
 
 const ComparisonView = ({ data, submission1, submission2, onClose }) => {
-  // Debug data received
-  console.log("Comparison data:", data);
-  console.log("Submission1:", submission1);
-  console.log("Submission2:", submission2);
-
   // Make sure matching_segments exists and is an array
   const matching_segments = data?.matching_segments || [];
 
+  // Convert matching segments to line ranges for highlighting
+  const highlightLines = matching_segments.map(segment => ({
+    start: segment.source_position[0],
+    end: segment.source_position[1],
+  }));
+
   // Calculate similarity percentage for display
   const similarityScore = data?.similarity_score || 0;
-
-  // Convert matching segments to highlights compatible with the DiffViewer
-  // The library expects an array of line numbers as strings, not objects
-  const highlightLines = {};
   
-  // Process matching segments to build line highlighting compatible with react-diff-viewer
-  if (matching_segments.length > 0) {
-    // Since the data provides character positions, not line numbers,
-    // we need to convert or simply create a basic highlight
-    highlightLines.left = ['1', '2', '3']; // Lines to highlight on the left side
-    highlightLines.right = ['1', '2', '3']; // Lines to highlight on the right side
-  }
-
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 border border-[#d1dde6]">
       <h2 className="text-lg font-semibold text-[#0e161b] mb-4">
@@ -75,8 +64,7 @@ const ComparisonView = ({ data, submission1, submission2, onClose }) => {
           oldValue={submission1?.fullText || "Content not available"}
           newValue={submission2?.fullText || "Content not available"}
           splitView={true}
-          // Note: We're omitting the highlightLines prop because it's causing type errors
-          // Remove the prop or use the correct format for your diff viewer version
+          highlightLines={highlightLines}
           leftTitle={`${submission1?.student_name || 'Student 1'}'s Submission`}
           rightTitle={`${submission2?.student_name || 'Student 2'}'s Submission`}
         />

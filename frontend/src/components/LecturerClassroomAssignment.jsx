@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { FileText, AlertTriangle } from 'lucide-react';
 import api from '../api';
 import Toast from './common/Toast';
-import PlagiarismAnalysis from '../components/Analytics/PlagiarismAnalysis'
+// import PlagiarismAnalysis from '../components/Analytics/PlagiarismAnalysis'
 
 export default function LecturerClassroomAssignment() {
   const navigate = useNavigate();
@@ -84,25 +84,25 @@ export default function LecturerClassroomAssignment() {
 
     navigate(`/lecturer/classes/${classCode}/assignments/${assignmentId}/analysis`);
   
-    // setCurrentCheckingId(assignmentId);
-    // try {
-    //   const response = await api.get(`/api/assignments/${assignmentId}/plagiarism-report/`);
-    //   console.log('Plagiarism Report:', response.data);
-    //   setShowPlagiarismAnalysis(true);
-    //   setNotification({
-    //     type: 'success',
-    //     message: 'Plagiarism report retrieved successfully'
-    //   });
-    // } catch (error) {
-    //   console.error('Error fetching plagiarism report:', error);
-    //   const errorMessage = error.response?.data?.error || 'Failed to retrieve plagiarism report';
-    //   setNotification({
-    //     type: 'error',
-    //     message: errorMessage
-    //   });
-    // } finally {
-    //   setCurrentCheckingId(null);
-    // }
+    setCurrentCheckingId(assignmentId);
+    try {
+      const response = await api.get(`/api/assignments/${assignmentId}/plagiarism-report/`);
+      console.log('Plagiarism Report:', response.data);
+      // setShowPlagiarismAnalysis(true);
+      setNotification({
+        type: 'success',
+        message: 'Plagiarism report retrieved successfully'
+      });
+    } catch (error) {
+      console.error('Error fetching plagiarism report:', error);
+      const errorMessage = error.response?.data?.error || 'Failed to retrieve plagiarism report';
+      setNotification({
+        type: 'error',
+        message: errorMessage
+      });
+    } finally {
+      setCurrentCheckingId(null);
+    }
   };
 
   if (loading) {
@@ -125,9 +125,25 @@ export default function LecturerClassroomAssignment() {
         {/* Assignments List */}
         <div className="space-y-6">
           {assignments.map((assignment) => {
-            const isDeadlinePassed = new Date(assignment.deadline) < new Date();
-            // console.log(assignment.deadline)
-            const submissionCount = assignment.submission_count || 0;
+           // Convert deadline (UTC) to Date object
+          const deadlineUTC = new Date(assignment.deadline);
+
+          // Convert current time to UTC explicitly
+          const currentTimeUTC = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000);
+
+          // Compare both in UTC
+          const isDeadlinePassed = currentTimeUTC > deadlineUTC;
+
+          // Show local time version of the deadline (optional, for user display)
+          const deadlineLocalDisplay = deadlineUTC.toLocaleString(); // Converts UTC deadline to user's local time
+
+          // Optional: log times for debugging
+          // console.log("Assignment Deadline (UTC):", deadlineUTC.toISOString());  
+          // console.log("Current Time (UTC):", currentTimeUTC.toISOString());
+          // console.log("Deadline (Local Display):", deadlineLocalDisplay);
+
+          // Use submission count safely
+          const submissionCount = assignment.submission_count || 0;
             
             return (
               <div key={assignment.id} className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow">

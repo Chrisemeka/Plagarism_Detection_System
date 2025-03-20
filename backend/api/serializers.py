@@ -169,13 +169,20 @@ class AssignmentSubmissionSerializer(serializers.ModelSerializer):
 
 
 class PlagiarismResultSerializer(serializers.ModelSerializer):
+    # Add student1 and student2 fields
+    student1 = serializers.CharField()
+    student2 = serializers.CharField()
+    
     class Meta:
         model = PlagiarismResult
-        fields = ['similarity_score', 'matching_segments', 'compared_at']
+        fields = ['student1', 'student2', 'similarity_score', 'matching_segments', 'compared_at']
 
 class PlagiarismReportSerializer(serializers.Serializer):
     assignment_title = serializers.CharField()
     total_submissions = serializers.IntegerField()
     deadline = serializers.DateTimeField()
+    # Add additional metrics fields
+    average_similarity = serializers.FloatField()
+    above_threshold_count = serializers.IntegerField()
     comparisons = PlagiarismResultSerializer(many=True)
     check_date = serializers.DateTimeField()
