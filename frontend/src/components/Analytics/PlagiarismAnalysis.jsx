@@ -111,58 +111,6 @@ export default function PlagiarismAnalytics() {
     fetchReportData();
   }, [assignmentId]);
 
-  // Handler for when a cell in the heat map is clicked
-  // Update handlePairSelect in PlagiarismAnalytics.jsx
-// const handlePairSelect = async (submissionIndex1, submissionIndex2) => {
-//   if (submissionIndex1 === submissionIndex2) return; // Ignore self-comparisons
-  
-//   // Find the comparison data for these two submissions
-//   const student1 = submissions[submissionIndex1].student_name;
-//   const student2 = submissions[submissionIndex2].student_name;
-  
-//   // Look for this pair in the comparisons array
-//   const comparison = reportData.comparisons.find(comp => 
-//     (comp.student1 === student1 && comp.student2 === student2) ||
-//     (comp.student1 === student2 && comp.student2 === student1)
-//   );
-  
-//   if (comparison) {
-//     try {
-//       // Fetch the full document texts if they're not already in the comparison
-//       // If your API doesn't provide this, you'll need to add this endpoint
-//       const documentResponse = await api.get(
-//         `/api/assignments/${assignmentId}/submissions-content/`, {
-//           params: {
-//             student1: student1,
-//             student2: student2
-//           }
-//         }
-//       );
-      
-//       setSelectedPair({
-//         comparison,
-//         submission1: {
-//           ...submissions[submissionIndex1],
-//           fullText: documentResponse.data.text1 || "Full text not available"
-//         },
-//         submission2: {
-//           ...submissions[submissionIndex2],
-//           fullText: documentResponse.data.text2 || "Full text not available"
-//         }
-//       });
-//     } catch (error) {
-//       console.error("Error fetching document content:", error);
-//       // Fall back to just showing the segments
-//       setSelectedPair({
-//         comparison,
-//         submission1: submissions[submissionIndex1],
-//         submission2: submissions[submissionIndex2]
-//       });
-//     }
-//   }
-// };
-
-  // In PlagiarismAnalytics.jsx - we need to modify the handlePairSelect function:
 
   const handlePairSelect = async (submissionIndex1, submissionIndex2) => {
     if (submissionIndex1 === submissionIndex2) return; // Ignore self-comparisons
@@ -296,11 +244,6 @@ export default function PlagiarismAnalytics() {
         <HistogramChart submissions={submissions} />
       </div>
 
-      {/* Statistical Overview */}
-      {/* <div className="bg-white rounded-lg shadow-sm p-6 border border-[#d1dde6]">
-        <h2 className="text-lg font-semibold text-[#0e161b] mb-4">Statistical Overview</h2>
-        <SimilarityBoxPlot submissions={submissions} />
-      </div> */}
 
       {/* Similarity Matrix */}
       <div className="bg-white rounded-lg shadow-sm p-6 border border-[#d1dde6]">

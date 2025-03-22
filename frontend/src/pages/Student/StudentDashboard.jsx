@@ -63,6 +63,9 @@ export default function StudentDashboard() {
     fetchUserData();
   }, [navigate]);
 
+  const classData = localStorage.getItem('classes');
+  const classCount = classData ? JSON.parse(classData) : [];
+
   // Loading state
   if (loading) {
     return (
@@ -123,11 +126,7 @@ export default function StudentDashboard() {
           <div className="border-t pt-4">
             <div className="flex justify-between items-center py-2">
               <span className="text-gray-600">Department</span>
-              <span className="text-gray-900 font-medium">{user?.department || 'Not specified'}</span>
-            </div>
-            <div className="flex justify-between items-center py-2">
-              <span className="text-gray-600">Student ID</span>
-              <span className="text-gray-900 font-medium">{user?.identifier || 'Not specified'}</span>
+              <span className="text-gray-900 font-medium">{user?.department.toUpperCase() || 'Not specified'}</span>
             </div>
           </div>
         </div>
@@ -141,9 +140,9 @@ export default function StudentDashboard() {
             <h2 className="text-lg font-semibold text-gray-800">Enrolled Classes</h2>
           </div>
           <div className="mt-4">
-            <h3 className="text-4xl font-bold text-gray-900 mb-2">5</h3>
+            <h3 className="text-4xl font-bold text-gray-900 mb-2">{classCount.length}</h3>
             <p className="text-green-600">Active semester</p>
-            <p className="mt-4 text-gray-600">You are currently enrolled in 5 classes for this semester.</p>
+            <p className="mt-4 text-gray-600">You are currently enrolled in {classCount.length} classes for this semester.</p>
           </div>
         </div>
       </div>
@@ -166,33 +165,6 @@ export default function StudentDashboard() {
         
         <StudentClass />
       </div>
-
-      {/* Join Class Modal */}
-      {/* {isModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div 
-            className="fixed inset-0 backdrop-blur-sm bg-black/30" 
-            onClick={() => setIsModalOpen(false)}
-          ></div>
-          
-          <div className="bg-white rounded-lg p-6 w-full max-w-md relative z-50">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Join a Class</h2>
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ×
-              </button>
-            </div>
-            <JoinClassForm 
-              onSuccess={() => {
-                setIsModalOpen(false);
-              }}
-            />
-          </div>
-        </div>
-      )} */}
     </>
   );
 }

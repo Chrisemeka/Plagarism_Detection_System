@@ -17,6 +17,7 @@ function Form({ route, method }) {
   });
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [notification, setNotification] = useState(null); // Changed from error to notification
   const navigate = useNavigate();
  
   const isLogin = method === "login";
@@ -44,7 +45,26 @@ function Form({ route, method }) {
         navigate("/login");
       }
     } catch (error) {
-      alert(error);
+      // Improved error handling
+      console.error("Login error:", error);
+      
+      // Extract error message from the response
+      let errorMessage = "An error occurred during authentication";
+      
+      if (error.response) {
+        // The server responded with a status code outside the 2xx range
+        errorMessage = error.response.data.detail || "Authentication failed";
+        console.log("Server error response:", error.response.data);
+      } else if (error.request) {
+        // The request was made but no response was received
+        errorMessage = "No response from server. Please check your connection.";
+      }
+      
+      // Set notification with the error message
+      setNotification({
+        message: errorMessage,
+        type: "error"
+      });
     } finally {
       setLoading(false);
     }
@@ -87,6 +107,13 @@ function Form({ route, method }) {
               {isLogin ? "Please sign in to your account" : "Sign up for the plagiarism checker"}
             </p>
           </div>
+
+          {/* Display inline error message */}
+          {notification && (
+            <div className="mb-4 p-3 bg-red-100 border-l-4 border-red-500 text-red-700 rounded">
+              {notification.message}
+            </div>
+          )}
 
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-4">

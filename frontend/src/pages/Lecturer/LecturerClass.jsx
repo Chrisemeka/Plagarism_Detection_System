@@ -81,6 +81,7 @@ export default function LecturerClass({ refreshTrigger }) {
           );
           
           setClasses(classesWithCounts);
+          localStorage.setItem('classes', JSON.stringify(classesWithCounts));
         } else {
           console.error('Error fetching classes:', response.statusText);
         }

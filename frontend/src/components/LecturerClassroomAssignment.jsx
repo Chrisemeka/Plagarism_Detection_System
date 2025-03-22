@@ -42,7 +42,6 @@ export default function LecturerClassroomAssignment() {
     try {
       const response = await api.get(`/api/class/${classCode}/assignments/`);
       const assignmentData = response.data;
-      // console.log('Assignment Data:', assignmentData);
 
       // Fetch submission counts for each assignment
       const assignmentsWithCounts = await Promise.all(
@@ -72,15 +71,7 @@ export default function LecturerClassroomAssignment() {
   }, [fetchData]);
 
   const handlePlagiarismCheck = async (assignmentId) => {
-    // console.log('Assignment ID:', assignmentId); // Log the assignmentId
-    // if (!assignmentId) {
-    //   console.error('Assignment ID is null or undefined');
-    //   setNotification({
-    //     type: 'error',
-    //     message: 'Invalid assignment ID'
-    //   });
-    //   return;
-    // }
+
 
     navigate(`/lecturer/classes/${classCode}/assignments/${assignmentId}/analysis`);
   
@@ -115,6 +106,13 @@ export default function LecturerClassroomAssignment() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
+       {/* Back Button */}
+       <button
+        onClick={() => navigate(-1)} // Navigate back to the previous page
+        className="text-blue-600 hover:text-blue-800 mb-10"
+      >
+        &larr; Back to Previous
+      </button>
       <div className="max-w-4xl mx-auto">
         {/* Header Section */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
@@ -136,11 +134,6 @@ export default function LecturerClassroomAssignment() {
 
           // Show local time version of the deadline (optional, for user display)
           const deadlineLocalDisplay = deadlineUTC.toLocaleString(); // Converts UTC deadline to user's local time
-
-          // Optional: log times for debugging
-          // console.log("Assignment Deadline (UTC):", deadlineUTC.toISOString());  
-          // console.log("Current Time (UTC):", currentTimeUTC.toISOString());
-          // console.log("Deadline (Local Display):", deadlineLocalDisplay);
 
           // Use submission count safely
           const submissionCount = assignment.submission_count || 0;
@@ -195,15 +188,6 @@ export default function LecturerClassroomAssignment() {
                     <AlertTriangle size={16} className="mr-2" />
                     {currentCheckingId === assignment.id ? 'Checking...' : 'Check Plagiarism'}
                   </button>
-                  
-                  {/* <button
-                    onClick={() => window.location.href = `/lecturer/assignments/${assignment.id}/submissions`}
-                    disabled={submissionCount === 0}
-                    className="px-4 py-2 text-blue-600 hover:text-blue-800 transition-colors
-                      disabled:text-gray-400 disabled:cursor-not-allowed"
-                  >
-                    View Submissions {submissionCount > 0 ? `(${submissionCount})` : ''}
-                  </button> */}
                 </div>
               </div>
             );
@@ -226,14 +210,6 @@ export default function LecturerClassroomAssignment() {
         />
       )}
 
-    {/* {showPlagiarismAnalysis && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl p-6">
-          {console.log(currentCheckingId)}
-          <PlagiarismAnalysis assignmentId={currentCheckingId} onClose={() => setShowPlagiarismAnalysis(false)} />
-        </div>
-      </div>
-    )} */}
     </div>
   );
 }

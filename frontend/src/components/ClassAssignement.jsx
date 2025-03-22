@@ -1,9 +1,11 @@
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useNavigate } from "react-router-dom";
 import api from '../api';
 import Toast from './common/Toast';
 
 export default function ClassAssignments() {
+  const navigate = useNavigate();
   const { classCode } = useParams();
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -106,6 +108,13 @@ export default function ClassAssignments() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
+      {/* Back Button */}
+      <button
+        onClick={() => navigate(-1)} // Navigate back to the previous page
+        className="text-blue-600 hover:text-blue-800 mb-10"
+      >
+        &larr; Back to Previous
+      </button>
       <div className="max-w-4xl mx-auto">
         {/* Header Section */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">

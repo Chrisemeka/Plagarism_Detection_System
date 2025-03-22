@@ -24,16 +24,13 @@ export default function StudentClass({ refreshTrigger }) {
     fetchClasses();
   }, [refreshTrigger]);
 
-  // Open the details modal
-  const openClassDetails = (classItem) => {
-    setSelectedClass(classItem);
-  };
-
-  // Close the details modal
-  const closeClassDetails = () => {
-    setSelectedClass(null);
-  };
-
+  // Store classes in localStorage whenever they change
+  useEffect(() => {
+    if (classes.length > 0) {
+      localStorage.setItem('classes', JSON.stringify(classes));
+    }
+  }, [classes]);
+  
   if (loading) {
     return (
       <div className="flex justify-center items-center py-8">
@@ -65,53 +62,61 @@ export default function StudentClass({ refreshTrigger }) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-      {classes.map(classItem => (
-        <div 
-          key={classItem.code} 
-          className="bg-white rounded-lg border border-[#d1dde6] overflow-hidden flex flex-col"
-        >
-          {/* Class Header */}
-          <div className="p-5 border-b border-[#d1dde6]">
-            <div className="flex justify-between">
-              <h3 className="text-[#0e161b] text-lg font-bold truncate">
-                {classItem.title}
-              </h3>
-            </div>
-            <p className="text-[#507a95] text-sm mt-1">
-              Lecturer: {classItem.lecturer}
-            </p>
-          </div>
-
-          {/* Class Info */}
-          <div className="px-5 py-3 border-b border-[#d1dde6]">
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center">
-                <Calendar className="h-4 w-4 text-[#507a95] mr-2" />
-                <span className="text-[#0e161b] text-sm">
-                  Class Code: {classItem.code}
-                </span>
+    <div className="space-y-6">
+      {/* Heading outside the grid */}
+      <h2 className="text-[#0e161b] tracking-light text-[32px] font-bold leading-tight">
+        My Classes
+      </h2>
+      
+      {/* Grid of class cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {classes.map(classItem => (
+          <div 
+            key={classItem.code} 
+            className="bg-white rounded-lg border border-[#d1dde6] overflow-hidden flex flex-col"
+          >
+            {/* Class Header */}
+            <div className="p-5 border-b border-[#d1dde6]">
+              <div className="flex justify-between">
+                <h3 className="text-[#0e161b] text-lg font-bold truncate">
+                  {classItem.title}
+                </h3>
               </div>
-              <div className="flex items-center">
-                <Users className="h-4 w-4 text-[#507a95] mr-2" />
-                <span className="text-[#0e161b] text-sm">
-                  Students enrolled
-                </span>
+              <p className="text-[#507a95] text-sm mt-1">
+                Lecturer: {classItem.lecturer}
+              </p>
+            </div>
+
+            {/* Class Info */}
+            <div className="px-5 py-3 border-b border-[#d1dde6]">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center">
+                  <Calendar className="h-4 w-4 text-[#507a95] mr-2" />
+                  <span className="text-[#0e161b] text-sm">
+                    Class Code: {classItem.code}
+                  </span>
+                </div>
+                <div className="flex items-center">
+                  <Users className="h-4 w-4 text-[#507a95] mr-2" />
+                  <span className="text-[#0e161b] text-sm">
+                    Students enrolled
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Actions */}
-          <div className="mt-auto p-3 flex gap-2">
-            <button 
-              onClick={() => navigate(`/student/classes/${classItem.code}/assignments`)}
-              className="flex-1 flex justify-center items-center py-2 px-4 border border-transparent rounded-lg text-sm font-medium text-white bg-[#1d8cd7] hover:bg-[#1d8cd7]/90"
-            >
-              View Assignments
-            </button>
+            {/* Actions */}
+            <div className="mt-auto p-3 flex gap-2">
+              <button 
+                onClick={() => navigate(`/student/classes/${classItem.code}/assignments`)}
+                className="flex-1 flex justify-center items-center py-2 px-4 border border-transparent rounded-lg text-sm font-medium text-white bg-[#1d8cd7] hover:bg-[#1d8cd7]/90"
+              >
+                View Assignments
+              </button>
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }

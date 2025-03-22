@@ -40,7 +40,7 @@ const LecturerLayout = () => {
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           `}
         >
-          <LecturerSidebar />
+          <LecturerSidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
         </div>
 
         {/* Mobile Overlay */}

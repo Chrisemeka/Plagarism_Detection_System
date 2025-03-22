@@ -1,9 +1,7 @@
-import { useState } from 'react';
 import { Home, FileText, LogOut, Menu, BookOpen, PlusCircle, Book, Users } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
-export default function LecturerSidebar() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+export default function LecturerSidebar({ isOpen, setIsOpen }) {
   const navigate = useNavigate();
   const location = useLocation(); // Get current location
   
@@ -34,38 +32,42 @@ export default function LecturerSidebar() {
     <>
       {/* Mobile menu button */}
       <button 
-        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        onClick={() => setIsOpen(!isOpen)}
         className="fixed p-4 lg:hidden z-50"
       >
         <Menu size={24} />
       </button>
 
-      {/* Sidebar */}
-      <div className={`
-        fixed top-0 left-0 h-full bg-white shadow-lg w-64 transform transition-transform duration-200 ease-in-out z-40
-        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
-
-        {/* Navigation items */}
-        <nav className="flex mt-20 flex-col justify-between h-[calc(100%-80px)]">
-          <div className="p-4 space-y-2">
-            {navItems.map((item) => (
-              <Link
-                key={item.name}
-                to={item.path}
-                className={`flex items-center space-x-3 p-3 rounded-lg transition-colors
-                  ${isActive(item.path, item.name) 
-                    ? 'bg-[#e8eef3] text-[#1d8cd7] font-medium' 
-                    : 'hover:bg-gray-100 text-gray-700'}`}
-                onClick={() => setIsSidebarOpen(false)}
-              >
-                {item.icon}
-                <span>{item.name}</span>
-              </Link>
-            ))}
-          </div>
-        </nav>
-      </div>
+      {/* Navigation items */}
+      <nav className="flex mt-20 flex-col justify-between h-[calc(100%-80px)]">
+        <div className="p-4 space-y-2">
+          {navItems.map((item) => (
+            <Link
+              key={item.name}
+              to={item.path}
+              className={`flex items-center space-x-3 p-3 rounded-lg transition-colors
+                ${isActive(item.path, item.name) 
+                  ? 'bg-[#e8eef3] text-[#1d8cd7] font-medium' 
+                  : 'hover:bg-gray-100 text-gray-700'}`}
+              onClick={() => setIsOpen(false)}
+            >
+              {item.icon}
+              <span>{item.name}</span>
+            </Link>
+          ))}
+        </div>
+        
+        {/* Logout button at bottom */}
+        <div className="p-4 mt-auto">
+          <button
+            onClick={handleLogout}
+            className="flex items-center space-x-3 p-3 rounded-lg w-full hover:bg-gray-100 text-gray-700"
+          >
+            <LogOut size={20} />
+            <span>Logout</span>
+          </button>
+        </div>
+      </nav>
     </>
   );
 }

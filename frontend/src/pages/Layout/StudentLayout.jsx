@@ -10,11 +10,6 @@ const StudentLayout = () => {
   const userType = localStorage.getItem('USER_TYPE');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Redirect to login if not logged in or not a student
-  // if (!isLoggedIn || userType !== 'student') {
-  //   return <Navigate to="/login" />;
-  // }
-
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
@@ -40,7 +35,7 @@ const StudentLayout = () => {
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           `}
         >
-          <StudentSidebar />
+          <StudentSidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
         </div>
 
         {/* Mobile Overlay */}

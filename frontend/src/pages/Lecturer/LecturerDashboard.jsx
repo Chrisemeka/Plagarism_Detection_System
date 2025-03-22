@@ -4,81 +4,6 @@ import { Plus, X, User, Book, School } from 'lucide-react';
 import api from '../../api';
 import LecturerClass from './LecturerClass';
 
-// CreateClassModal Component (Modal Version)
-// function CreateClassModal({ isOpen, onClose, onSuccess }) {
-//   const [formData, setFormData] = useState({
-//     title: '',
-//   });
-
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-//     try {
-//       await api.post('/api/class/create/', formData);
-//       setFormData({ title: '' }); // Reset form
-//       onSuccess?.(); // Trigger refresh
-//       onClose(); // Close modal
-//     } catch (error) {
-//       alert(error);
-//     }
-//   };
-
-//   if (!isOpen) return null;
-
-//   return (
-//     <div className="fixed inset-0 flex items-center justify-center z-50">
-//       {/* Backdrop with blur */}
-//       <div 
-//         className="fixed inset-0 backdrop-blur-sm bg-black/30" 
-//         onClick={onClose}
-//       ></div>
-      
-//       {/* Modal Content */}
-//       <div className="bg-white rounded-lg p-6 w-full max-w-md relative z-50">
-//         <div className="flex justify-between items-center mb-4">
-//           <h2 className="text-xl font-semibold">Create New Class</h2>
-//           <button 
-//             onClick={onClose}
-//             className="text-gray-500 hover:text-gray-700"
-//           >
-//             ×
-//           </button>
-//         </div>
-        
-//         <form onSubmit={handleSubmit} className="space-y-4">
-//           <div>
-//             <label className="block text-sm font-medium text-[#0e161b] mb-1">
-//               Class Title
-//             </label>
-//             <input
-//               type="text"
-//               required
-//               className="w-full px-4 py-2.5 rounded-lg border border-[#d1dde6] focus:ring-2 focus:ring-[#1d8cd7] focus:border-[#1d8cd7]"
-//               value={formData.title}
-//               onChange={(e) => setFormData({...formData, title: e.target.value})}
-//               placeholder="Enter class title"
-//             />
-//           </div>
-
-//           <div className="flex justify-end space-x-3 pt-4">
-//             <button
-//               type="button"
-//               onClick={onClose}
-//               className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-800"
-//             >
-//               Cancel
-//             </button>
-//             <button
-//               type="submit"
-//               className="px-4 py-2 text-sm font-medium text-white bg-[#1d8cd7] rounded-lg hover:bg-[#1d8cd7]/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1d8cd7]"
-//             >
-//               Create Class
-//             </button>
-//           </div>
-//         </form>
-//       </div>
-//     </div>
-//   );
-// }
 
 // Main Dashboard Component
 export default function LecturerDashboard() {
@@ -86,8 +11,8 @@ export default function LecturerDashboard() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  // const [isModalOpen, setIsModalOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(false);
+  const [classes, setClasses] = useState([]);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -141,9 +66,33 @@ export default function LecturerDashboard() {
     fetchUserData();
   }, [navigate]);
 
-  const handleClassCreated = () => {
-    setRefreshTrigger(prev => !prev); // Toggle to trigger refresh
-  };
+  useEffect(() => {
+    const fetchClasses = async () => {
+      const access = localStorage.getItem('access');
+      try {
+        const response = await fetch('http://localhost:8000/api/class/classroom_list/', {
+          headers: {
+            'Authorization': `Bearer ${access}`,
+          },
+        });
+
+        if (response.ok) {
+          const classesWithCounts = await response.json();
+          
+          setClasses(classesWithCounts);
+          localStorage.setItem('classes', JSON.stringify(classesWithCounts));
+        } else {
+          console.error('Error fetching classes:', response.statusText);
+        }
+      } catch (error) {
+        console.error('Error fetching classes:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchClasses();
+  }, [refreshTrigger, navigate]);
 
   // Loading state
   if (loading) {
@@ -168,6 +117,10 @@ export default function LecturerDashboard() {
       </div>
     );
   }
+
+  const classData = localStorage.getItem('classes');
+  const classCount = JSON.parse(classData);
+
 
   return (
     <>
@@ -205,11 +158,7 @@ export default function LecturerDashboard() {
           <div className="border-t pt-4">
             <div className="flex justify-between items-center py-2">
               <span className="text-gray-600">Department</span>
-              <span className="text-gray-900 font-medium">{user?.department || 'Not specified'}</span>
-            </div>
-            <div className="flex justify-between items-center py-2">
-              <span className="text-gray-600">Faculty ID</span>
-              <span className="text-gray-900 font-medium">{user?.identifier || 'Not specified'}</span>
+              <span className="text-gray-900 font-medium">{user?.department.toUpperCase() || 'Not specified'}</span>
             </div>
           </div>
         </div>
@@ -223,9 +172,9 @@ export default function LecturerDashboard() {
             <h2 className="text-lg font-semibold text-gray-800">Teaching Stats</h2>
           </div>
           <div className="mt-4">
-            <h3 className="text-4xl font-bold text-gray-900 mb-2">3</h3>
-            <p className="text-green-600">Active Classes</p>
-            <p className="mt-4 text-gray-600">You are currently teaching 3 classes this semester.</p>
+            <h3 className="text-4xl font-bold text-gray-900 mb-2">{classCount.length}</h3>
+            <p className="text-green-600">Active  Classes</p>
+            <p className="mt-4 text-gray-600">You are currently teaching {classCount.length} classes this semester.</p>
           </div>
         </div>
       </div>
@@ -248,13 +197,6 @@ export default function LecturerDashboard() {
         
         <LecturerClass refreshTrigger={refreshTrigger} />
       </div>
-
-      {/* Create Class Modal */}
-      {/* <CreateClassModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSuccess={handleClassCreated}
-      /> */}
     </>
   );
 }
