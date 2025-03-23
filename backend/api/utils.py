@@ -136,8 +136,6 @@ class DocumentProcessor:
             raise ProcessingError(f"Failed to process document: {str(e)}")
         
 
-# 
-
 
 class PlagiarismChecker:
     def __init__(self, similarity_threshold=0.3):

@@ -140,7 +140,7 @@ function Form({ route, method }) {
                   onChange={(e) => setFormData({...formData, password: e.target.value})}
                 />
               </div>
-              
+              {/* Register Form */}
               {!isLogin && (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

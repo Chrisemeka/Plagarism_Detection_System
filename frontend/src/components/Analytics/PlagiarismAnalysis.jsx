@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom'; // Add useNavigate for navigation
 import  HistogramChart  from './HistogramChart';
 import  SimilarityHeatMap  from './SimilarityHeatMap';
-// import { SimilarityBoxPlot } from './SimilarityBoxPlot';
 import  ComparisonView  from './ComparisonView';
 import api from '../../api';
 

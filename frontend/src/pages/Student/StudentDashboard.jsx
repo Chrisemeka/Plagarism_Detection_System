@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import StudentClass from '../Student/StudentClass';
-// import JoinClassForm from '../Student/JoinClassForm';
 import { useNavigate } from 'react-router-dom';
 import { Book, Plus, User } from 'lucide-react';
 
@@ -9,7 +8,6 @@ export default function StudentDashboard() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  // const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {

@@ -90,6 +90,21 @@ class User(AbstractBaseUser):
     """
 
 class Classroom(models.Model):
+    """
+    Model representing a classroom or course.
+    
+    Attributes:
+    - `code`: Unique 6-character code for students to join the classroom.
+    - `title`: Name of the classroom/course.
+    - `lecturer`: Foreign key to the User who created and administers the classroom (must be a lecturer).
+    - `created_at`: Timestamp when the classroom was created.
+    
+    Relationships:
+    - One lecturer can have many classrooms (one-to-many).
+    - Connected to ClassroomMembership to track enrolled students.
+    - Connected to Assignment model for assignments created within this classroom.
+    """
+
     code = models.CharField(max_length=6, unique=True)
     title = models.CharField(max_length=100)
     lecturer = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'user_type': 'lecturer'})
@@ -97,12 +112,50 @@ class Classroom(models.Model):
 
 
 class ClassroomMembership(models.Model):
+
+    """
+    Intermediate model that associates students with classrooms.
+    
+    This model establishes a many-to-many relationship between students and classrooms,
+    recording when each student joined a specific classroom.
+    
+    Attributes:
+    - `classroom`: Foreign key to the Classroom model.
+    - `student`: Foreign key to the User model (filtered to only include students).
+    - `joined_at`: Timestamp when the student joined the classroom.
+    
+    Relationships:
+    - Each record represents one student's membership in one classroom.
+    - Many students can be in many classrooms (many-to-many).
+    """
+
     classroom = models.ForeignKey(Classroom, on_delete=models.CASCADE)
     student = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'user_type': 'student'})
     joined_at = models.DateTimeField(auto_now_add=True)
 
 
 class Assignment(models.Model):
+
+    """
+    Model representing an assignment created by a lecturer within a classroom.
+    
+    Attributes:
+    - `classroom`: Foreign key to the Classroom model the assignment belongs to.
+    - `title`: The name or title of the assignment.
+    - `description`: Detailed instructions or description for the assignment (optional).
+    - `deadline`: Date and time when the assignment is due.
+    - `plagiarism_threshold`: Integer percentage that determines the minimum similarity 
+       score to flag submissions as potentially plagiarized (default 30%).
+    - `created_at`: Timestamp when the assignment was created.
+    
+    Properties:
+    - `lecturer`: Convenience property that returns the lecturer of the classroom.
+    
+    Relationships:
+    - Each assignment belongs to one classroom (many-to-one).
+    - Connected to AssignmentSubmission for tracking student submissions.
+    """
+
     classroom = models.ForeignKey(Classroom, on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
@@ -120,6 +173,26 @@ class Assignment(models.Model):
 
 
 class AssignmentSubmission(models.Model):
+
+    """
+    Model representing a student's submission for an assignment.
+    
+    Attributes:
+    - `student`: Foreign key to the User who submitted the assignment.
+    - `assignment`: Foreign key to the Assignment being submitted.
+    - `file`: The uploaded file containing the student's work.
+    - `submitted_at`: Timestamp when the submission was made.
+    - `status`: String tracking the current status of the submission (default 'submitted').
+    
+    Meta:
+    - `unique_together`: Ensures each student can only submit once per assignment.
+    
+    Relationships:
+    - Each submission is made by one student for one assignment.
+    - Connected to ProcessedDocument for plagiarism detection processing.
+    - Connected to PlagiarismResult for comparing against other submissions.
+    """
+
     student = models.ForeignKey(User, on_delete=models.CASCADE)
     assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE)
     file = models.FileField(upload_to='submissions/')
@@ -134,6 +207,25 @@ class AssignmentSubmission(models.Model):
     
 
 class ProcessedDocument(models.Model):
+
+    """
+    Model representing the processed version of a student submission ready for plagiarism detection.
+    
+    This model stores the text extraction and document fingerprinting results from processing
+    a student's submission file.
+    
+    Attributes:
+    - `submission`: One-to-one relationship with an AssignmentSubmission.
+    - `processed_text`: The extracted text content from the submission file.
+    - `fingerprints`: JSON field storing document fingerprints/hashes used for comparison.
+    - `processed_at`: Timestamp when the processing was completed.
+    - `status`: String tracking the processing status (default 'processing').
+    
+    Relationships:
+    - Each processed document corresponds to exactly one submission.
+    - Used in PlagiarismResult for comparison with other processed documents.
+    """
+
     submission = models.OneToOneField(AssignmentSubmission, on_delete=models.CASCADE)
     processed_text = models.TextField()
     fingerprints = models.JSONField()
@@ -147,6 +239,25 @@ class ProcessedDocument(models.Model):
 from django.db import models
 
 class PlagiarismResult(models.Model):
+
+    """
+    Model representing the result of a plagiarism comparison between two submissions.
+    
+    This model stores the outcome of comparing two student submissions for plagiarism,
+    including their similarity score and the specific matching text segments.
+    
+    Attributes:
+    - `submission1`: Foreign key to the first AssignmentSubmission being compared.
+    - `submission2`: Foreign key to the second AssignmentSubmission being compared.
+    - `similarity_score`: Float representing the percentage of similarity between submissions.
+    - `matching_segments`: JSON field storing the matching text portions with their positions.
+    - `compared_at`: Timestamp when the comparison was performed.
+    
+    Relationships:
+    - Each result connects two different submissions.
+    - Each submission can be involved in multiple comparisons (as either submission1 or submission2).
+    """
+
     submission1 = models.ForeignKey(AssignmentSubmission, on_delete=models.CASCADE, related_name='source_results')
     submission2 = models.ForeignKey(AssignmentSubmission, on_delete=models.CASCADE, related_name='compared_results')
     similarity_score = models.FloatField()
